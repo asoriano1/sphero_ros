@@ -275,16 +275,15 @@ class BTInterface(object):
 
 class BTInterfaceClassic(BTInterface):
 
-  def __init__(self, target_name = 'Sphero', target_addr = None, port = 1):
+  def __init__(self, target_name = 'Sphero', port = 1):
       self.target_name = target_name
       self.port = port
       self.found_device = False
       self.tries = 0
-      self.target_address = target_addr
       self.sock = None
 
-  def connect(self):
-    if self.target_address is None:
+  def connect(self, address = None):
+    if address is None:
         sys.stdout.write("Searching for devices....")
         sys.stdout.flush()
 
@@ -311,6 +310,7 @@ class BTInterfaceClassic(BTInterface):
           sys.stdout.flush()
           sys.exit(1)
     else:
+        self.target_address = address
         sys.stdout.write("Connecting to device: " + self.target_address + "...")
 
     try:
@@ -350,12 +350,11 @@ class ScanDelegate(DefaultDelegate):
 
 class BTInterfaceLE(BTInterface):
 
-  def __init__(self, target_name = 'BB', target_addr = None, port = 0):
+  def __init__(self, target_name = 'BB', port = 0):
     self.target_name = target_name
     self.port = port
     self.found_device = False
     self.tries = 0
-    self.target_address = target_addr
     self.peripheral = None
     self.sphero_service = None
     #Service and characterstic UUID values taken from official Sphero JavaScript library
@@ -377,8 +376,8 @@ class BTInterfaceLE(BTInterface):
     self.response_characteristic = None
 
 
-  def connect(self):
-    if self.target_address is None:
+  def connect(self, address = None):
+    if address is None:
         sys.stdout.write("Searching for devices....")
         sys.stdout.flush()
 
@@ -408,6 +407,7 @@ class BTInterfaceLE(BTInterface):
           sys.stdout.flush()
           sys.exit(1)
     else:
+        self.target_address = address
         sys.stdout.write("Connecting to device: " + self.target_address + "...")
 
     try:
@@ -457,10 +457,9 @@ class BTInterfaceLE(BTInterface):
 
 class Sphero(threading.Thread):
 
-  def __init__(self, target_name = 'Sphero', target_addr = None, ble = False):
+  def __init__(self, target_name = 'Sphero', ble = True):
     threading.Thread.__init__(self)
     self.target_name = target_name
-    self.target_address = target_addr
     self.ble = ble
     self.bt = None
     self.shutdown = False
@@ -481,12 +480,12 @@ class Sphero(threading.Thread):
       sys.stdout.flush()
       self.ble = False
 
-  def connect(self):
+  def connect(self, address = None):
     if self.ble:
-      self.bt = BTInterfaceLE(self.target_name, self.target_address)
+      self.bt = BTInterfaceLE(self.target_name)
     else:
-      self.bt = BTInterfaceClassic(self.target_name, self.target_address)
-    self.is_connected = self.bt.connect()
+      self.bt = BTInterfaceClassic(self.target_name)
+    self.is_connected = self.bt.connect(address)
     self.bt.peripheral.withDelegate(NotificationDelegate(self))
     return True
 

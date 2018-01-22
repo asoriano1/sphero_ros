@@ -1,124 +1,32 @@
 <launch>
 
-   <!-- <rosparam command="load" file="$(find sphero_node)/config/sphero.yaml" /> -->
-   <arg name="gbr" default="true"/>
-   <arg name="wwb" default="true"/>
-   <arg name="grw" default="true"/>
-   
-   <arg name="ypp" default="false"/>
-   <arg name="pob" default="false"/>
-   <arg name="rgo" default="false"/>
-   <arg name="www" default="false"/>
-   <arg name="rpg" default="false"/>
-   <arg name="rwp" default="false"/>
-   <arg name="gpb" default="false"/>
-   <arg name="yyw" default="false"/>
+  <!-- <rosparam command="load" file="$(find sphero_node)/config/sphero.yaml" /> -->
+  <arg name="sk9495" default="true"/>
+  <arg name="sk1270" default="true"/>
 
-
-<group if="$(arg grw)">
-   <node pkg="sphero_node" type="sphero.py" name="sphero_grw" ns="sphero_grw" respawn="true">
-       <param name="address"  value="68:86:E7:09:09:03" />
-       <param name="connect_red"  value="255" />
-       <param name="connect_blue"  value="255" />
-       <param name="connect_green"  value="255" />
-   </node>
- </group>
-
-   <group if="$(arg rgo)">
-      <node pkg="sphero_node" type="sphero.py" name="sphero_rgo" ns="sphero_rgo" respawn="true">
-          <param name="address"  value="68:86:E7:09:0B:77" />
-          <param name="connect_red"  value="0" />
-          <param name="connect_blue"  value="0" />
-          <param name="connect_green"  value="255" />
-      </node>
-    </group>
-
-  <group if="$(arg ypp)">
-    <node pkg="sphero_node" type="sphero.py" name="sphero_ypp" ns="sphero_ypp" respawn="true">
-        <param name="address"  value="68:86:E7:09:08:E3" />
-        <param name="connect_red"  value="255" />
-        <param name="connect_blue"  value="255" />
-        <param name="connect_green"  value="255" />
+  <group if="$(arg sk9495)">
+    <node pkg="sphero_node" type="sphero.py" name="sphero_sk9495" ns="sphero_sk9495" respawn="true">
+      <param name="address"  value="DA:82:DA:A9:94:95" />
+      <param name="connect_red"  value="0" />
+      <param name="connect_blue"  value="0" />
+      <param name="connect_green"  value="255" />
     </node>
   </group>
 
-  <group if="$(arg pob)">
-    <node pkg="sphero_node" type="sphero.py" name="sphero_pob" ns="sphero_pob" respawn="true">
-        <param name="address"  value="68:86:E7:09:0D:DC" />
-        <param name="connect_red"  value="255" />
-        <param name="connect_blue"  value="255" />
-        <param name="connect_green"  value="0" />
+  <group if="$(arg sk1270)">
+    <node pkg="sphero_node" type="sphero.py" name="sphero_sk1270" ns="sphero_sk1270" respawn="true">
+      <param name="address"  value="D8:06:1C:CE:12:70" />
+      <param name="connect_red"  value="255" />
+      <param name="connect_blue"  value="0" />
+      <param name="connect_green"  value="" />
     </node>
   </group>
 
-  <group if="$(arg www)">
-    <node pkg="sphero_node" type="sphero.py" name="sphero_www" ns="sphero_www" respawn="true">
-        <param name="address"  value="68:86:E7:09:0A:D0" />
-        <param name="connect_red"  value="255" />
-        <param name="connect_blue"  value="255" />
-        <param name="connect_green"  value="0" />
-    </node>
-  </group>
+  <node pkg="sphero_node" type="sphero_test.py" name="sphero_control">
+    <param name="num_spheros"  value="2" />
+  </node>
 
-  <group if="$(arg rpg)">
-    <node pkg="sphero_node" type="sphero.py" name="sphero_rpg" ns="sphero_rpg" respawn="true">
-        <param name="address"  value="68:86:E7:09:11:60" />
-        <param name="connect_red"  value="255" />
-        <param name="connect_blue"  value="255" />
-        <param name="connect_green"  value="255" />
-    </node>
-  </group>
-
-  <group if="$(arg rwp)">
-    <node pkg="sphero_node" type="sphero.py" name="sphero_rwp" ns="sphero_rwp" respawn="true">
-        <param name="address"  value="68:86:E7:09:21:1B" />
-        <param name="connect_red"  value="255" />
-        <param name="connect_blue"  value="255" />
-        <param name="connect_green"  value="255" />
-    </node>
-  </group>
-
-  <group if="$(arg wwb)">
-    <node pkg="sphero_node" type="sphero.py" name="sphero_wwb" ns="sphero_wwb" respawn="true">
-        <param name="address"  value="68:86:E7:09:11:C4" />
-        <param name="connect_red"  value="255" />
-        <param name="connect_blue"  value="255" />
-        <param name="connect_green"  value="255" />
-    </node>
-  </group>
-
-  <group if="$(arg gbr)">
-    <node pkg="sphero_node" type="sphero.py" name="sphero_gbr" ns="sphero_gbr" respawn="true">
-        <param name="address"  value="68:86:E7:09:0A:12" />
-        <param name="connect_red"  value="255" />
-        <param name="connect_blue"  value="255" />
-        <param name="connect_green"  value="255" />
-    </node>
-  </group>
-
-  <group if="$(arg gpb)">
-    <node pkg="sphero_node" type="sphero.py" name="sphero_gpb" ns="sphero_gpb" respawn="true">
-        <param name="address"  value="68:86:E7:09:11:C4" />
-        <param name="connect_red"  value="255" />
-        <param name="connect_blue"  value="255" />
-        <param name="connect_green"  value="0" />
-    </node>
-  </group>
-
-  <group if="$(arg yyw)">
-    <node pkg="sphero_node" type="sphero.py" name="sphero_yyw" ns="sphero_yyw" respawn="true">
-        <param name="address"  value="68:86:E7:09:07:72" />
-        <param name="connect_red"  value="255" />
-        <param name="connect_blue"  value="255" />
-        <param name="connect_green"  value="255" />
-    </node>
-  </group>
-
-    <node pkg="sphero_node" type="sphero_test.py" name="sphero_control">
-        <param name="num_spheros"  value="2" />
-    </node>
-
-    <!-- <node pkg="joy" type="joy_node" name="joy"/> -->
+<!--  <node pkg="joy" type="joy_node" name="joy"/> -->
 
 </launch>
 
