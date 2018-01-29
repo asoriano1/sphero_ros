@@ -64,7 +64,7 @@ def main(input_arg):
         rospy.loginfo("You can only use kinect or a webcam")
         os._exit()
     if input_arg.img_src == "w":
-        cam = cv2.VideoCapture(1) # change int to corresponding camera number
+        cam = cv2.VideoCapture(0) # change int to corresponding camera number
     else:
         import freenect
 

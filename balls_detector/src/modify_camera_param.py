@@ -20,12 +20,12 @@ July 11, 2017
 import os
 
 # change video1 into video<X> where X is the derired webcam
-os.system('v4l2-ctl -d /dev/video1 -c exposure_auto=1')
+os.system('v4l2-ctl -d /dev/video0 -c exposure_auto=1')
 
 # reduce exposure to min value
-os.system('v4l2-ctl -d /dev/video1 -c exposure_absolute=3')
+os.system('v4l2-ctl -d /dev/video0 -c exposure_absolute=3')
 
 # turn off autofocus
-os.system('v4l2-ctl -d /dev/video1 -c focus_auto=0')
+os.system('v4l2-ctl -d /dev/video0 -c focus_auto=0')
 
 #TODO: extend support to Kinect
