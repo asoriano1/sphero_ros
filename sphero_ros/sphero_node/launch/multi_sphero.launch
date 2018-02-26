@@ -7,8 +7,8 @@
   <group if="$(arg sk9495)">
     <node pkg="sphero_node" type="sphero.py" name="sphero_sk9495" ns="sphero_sk9495" respawn="true">
       <param name="address"  value="DA:82:DA:A9:94:95" />
-      <param name="connect_red"  value="0" />
-      <param name="connect_blue"  value="0" />
+      <param name="connect_red"  value="255" />
+      <param name="connect_blue"  value="255" />
       <param name="connect_green"  value="255" />
     </node>
   </group>
@@ -17,8 +17,8 @@
     <node pkg="sphero_node" type="sphero.py" name="sphero_sk1270" ns="sphero_sk1270" respawn="true">
       <param name="address"  value="D8:06:1C:CE:12:70" />
       <param name="connect_red"  value="255" />
-      <param name="connect_blue"  value="0" />
-      <param name="connect_green"  value="" />
+      <param name="connect_blue"  value="255" />
+      <param name="connect_green"  value="255" />
     </node>
   </group>
 

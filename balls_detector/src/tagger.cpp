@@ -74,7 +74,9 @@ public:
 
   void tag()
   {
+	cout << "Will assign tags" << endl;
     assign_tags();
+	cout << "Tag assignment complete" << endl;
   }
 
   void publish_data()
@@ -131,19 +133,25 @@ private:
       // Turn on one robot
       ros::Duration(2).sleep();
       color_pub_array[num_rob].publish(led_on);
+      cout << "Turned on " << num_rob << endl;
       ros::Duration(2).sleep();
 
       // grab a frame and display it
       ros::spinOnce();
       imageDisp();
+      cout << "Displayed image with " << num_rob << " on" << endl;
 
       // Detect robot/blob in frame
       detectBlobs(std::move(frame),std::move(frame));
       imageDisp();
 
+      cout << "Detected Blobs" << endl;
+      cout << "Num detected is currently " << locs_tagged.data.size() << " at " << num_rob << endl;
+
       // Turn that robot off
       ros::Duration(2).sleep();
       color_pub_array[num_rob].publish(led_off);
+      cout << "Turned off " << num_rob << endl;
       ros::Duration(2).sleep();
     }
 
@@ -152,10 +160,12 @@ private:
     {
       ros::Duration(2).sleep();
       color_pub_array[num_rob].publish(led_on);
+      cout << "Turned " << num_rob << " back on" << endl;
       ros::Duration(2).sleep();
     }
 
     // Publish tagged locations
+    // TODO already publishing after this function. is this redundant?
     tags_pub_.publish(locs_tagged);
     done = true;
 
@@ -334,6 +344,8 @@ int main(int argc, char** argv)
     ros::init(argc, argv, "sphero_detector_node");
     ros::NodeHandle nh;
 
+    cout << "tagger starting" << endl;
+
     nh.getParam("/tagger/Blob_Params/threshold_step", threshold_step);
     nh.getParam("/tagger/Blob_Params/min_threshold", min_threshold);
     nh.getParam("/tagger/Blob_Params/max_threshold", max_threshold);
@@ -360,16 +372,21 @@ int main(int argc, char** argv)
   r.tag();
   r.publish_data();
 
+  cout << "Tagging complete" << endl;
+
   if (done)
   {
+	cout << "Done" << endl;
     ros::shutdown();
     return 0;
   }
 
   if(!ros::ok())
   {
+	cout << "ros not ok" << endl;
     return 0;
   }
 
+  cout << "ros shutdown in tagger" << endl;
   ros::shutdown();
 }

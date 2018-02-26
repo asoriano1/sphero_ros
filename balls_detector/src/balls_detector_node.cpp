@@ -283,12 +283,13 @@ private:
                 int i = 0;
                 for (vector<KeyPoint>::iterator k = keyImg.begin(); k != keyImg.end(); ++k, ++i)
                 {
-                  cout << keyImg[i].pt.x<<";"<<keyImg[i].pt.y<<endl;
+                  cout << i << ": "<< keyImg[i].pt.x<<";"<<keyImg[i].pt.y<<endl;
                   locs.data.push_back(keyImg[i].pt.x);
                   locs.data.push_back(keyImg[i].pt.y);
 
                   circle(result, k->pt, (int)k->size, Scalar(0, 255, 255), 1);
                 }
+                // TODO would this ever publish more balls than there is?
                 locs_pub_.publish(locs);
             }
         }
