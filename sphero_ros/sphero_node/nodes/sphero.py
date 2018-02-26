@@ -112,6 +112,7 @@ class SpheroNode(object):
         self.connect_color_green = rospy.get_param('~connect_green',255)
         self.cmd_vel_timeout = rospy.Duration(rospy.get_param('~cmd_vel_timeout', 0.6))
         self.diag_update_rate = rospy.Duration(rospy.get_param('~diag_update_rate', 1.0))
+        self.keep_alive_ping_period = rospy.Duration(rospy.get_param('~keep_alive_ping_period', 10.0))
 
     def normalize_angle_positive(self, angle):
         return math.fmod(math.fmod(angle, 2.0*math.pi) + 2.0*math.pi, 2.0*math.pi);
@@ -124,8 +125,7 @@ class SpheroNode(object):
         except:
 	    import traceback
             traceback.print_exc(file=sys.stdout)
-            rospy.loginfo("HELE")
-            rospy.logerr("--Failed to connect to Sphero.")
+            rospy.logerr("Failed to connect to Sphero.")
             sys.exit(1)
         #setup streaming
         self.robot.set_filtered_data_strm(self.sampling_divisor, 1 , 0, True)
@@ -138,21 +138,26 @@ class SpheroNode(object):
         self.robot.add_async_callback(sphero_driver.IDCODE['COLLISION'], self.parse_collision)
         #set the ball to connection color
         self.robot.set_rgb_led(self.connect_color_red,self.connect_color_green,self.connect_color_blue,0,False)
+	#set keep alive ping period
+        self.robot.set_keep_alive_ping_period(self.keep_alive_ping_period.to_sec());
         #now start receiving packets
         self.robot.start()
 
     def spin(self):
+        #rospy.loginfo("SPIN")
         r = rospy.Rate(10.0)
         while not rospy.is_shutdown():
             now = rospy.Time.now()
             if  (now - self.last_cmd_vel_time) > self.cmd_vel_timeout:
                 if self.cmd_heading != 0 or self.cmd_speed != 0:
+                    rospy.loginfo("ROLL: %d %d"%(self.cmd_heading, self.cmd_speed))
                     self.cmd_heading = 0
                     self.cmd_speed = 0
                     self.robot.roll(int(self.cmd_speed), int(self.cmd_heading), 1, False)
             if (now - self.last_diagnostics_time) > self.diag_update_rate:
                 self.last_diagnostics_time = now
                 self.publish_diagnostics(now)
+            self.robot.keep_alive_ping_if_necessary()
             r.sleep()
 
     def stop(self):

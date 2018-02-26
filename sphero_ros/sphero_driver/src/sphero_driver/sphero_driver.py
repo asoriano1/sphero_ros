@@ -473,6 +473,9 @@ class Sphero(threading.Thread):
     self._async_callback_dict = dict()
     self._sync_callback_dict = dict()
     self._sync_callback_queue = []
+    self.last_send_time = time.time()
+    self.keep_alive_ping_period = 10
+
 
     #no Bluetooth LE support on Windows and OSX
     if self.ble and ("Linux" not in platform.uname()):
@@ -996,6 +999,16 @@ class Sphero(threading.Thread):
     #send the msg
     with self._communication_lock:
       self.bt.send(msg)
+    self.last_send_time = time.time()
+
+  def set_keep_alive_ping_period(self, new_period):
+    self.keep_alive_ping_period = new_period
+
+  def keep_alive_ping_if_necessary(self):
+    if time.time() - self.last_send_time > self.keep_alive_ping_period:
+      sys.stdout.write("PING %s\n"%self.bt.target_address)
+      sys.stdout.flush()
+      self.ping(False)
 
   def run(self):
     # this is larger than any single packet
