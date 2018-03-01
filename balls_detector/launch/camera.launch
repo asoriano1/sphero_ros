@@ -5,6 +5,7 @@
 <launch>
 
   <arg name="img_src" default="w"/>
+  <arg name="cam_address" default="rtsp://192.168.137.17:8554/1.3gp"/>
 
 <!--  
 this was for locally connected cameras that support some fancy commands. we do not need it.
@@ -13,7 +14,15 @@ this was for locally connected cameras that support some fancy commands. we do n
 
   <node pkg="balls_detector" type="cam_bridge.py" name="cam_bridge">
     <param name="img_src" value="$(arg img_src)"/>
+    <param name="cam_address" value="$(arg cam_address)"/>
   </node>
+
+<!-- will try to debug in pycharm with this one
+  <group ns="cam_bridge">
+    <param name="img_src" value="$(arg img_src)"/>
+    <param name="cam_address" value="$(arg cam_address)"/>
+ </group>
+-->
 
   <node pkg="balls_detector" type="tagger" name="tagger">
     <rosparam command="load" file="$(find balls_detector)/config/tag_param.yaml"/>

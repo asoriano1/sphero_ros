@@ -29,17 +29,18 @@ from cv_bridge import CvBridge, CvBridgeError
 
 
 parser = argparse.ArgumentParser(description='Image Source')
-parser.add_argument("--img_src", type=str, default="w")
+parser.add_argument("--img_src", type=str, default="k")
+parser.add_argument("--cam_address", type=str, default=0)
 input_arg = parser.parse_args(rospy.myargv()[1:])
 
 class ImagePublisher:
 
-    def __init__(self, input_arg):
+    def __init__(self):
         self.bridge = CvBridge()
         self.keep_running = True
         self.cam_pub = rospy.Publisher("/cam/image/rgb", Image, queue_size=10)
 
-    def get_rgb(self, input_arg, *args):
+    def get_rgb(self, *args):
         if input_arg.img_src == "w":
             ret, self.cam_image = args[0].read()
         elif input_arg.img_src == "k": #TODO check if kinect works
@@ -52,39 +53,42 @@ class ImagePublisher:
         except CvBridgeError as e:
             print(e)
 
-    def body(self, input_arg, *args):
+    def body(self, *args):
         if input_arg.img_src == "k":
             if not self.keep_running:
                 raise freenect.Kill
         else:
             return
 
-def main(input_arg):
+def main():
+    rospy.init_node("cam_rgb_pub")
+
+    input_arg.img_src = rospy.get_param("~img_src", input_arg.img_src)
+    input_arg.cam_address = rospy.get_param("~cam_address", input_arg.cam_address)
+
     if not (input_arg.img_src == "w" or input_arg.img_src == "k"):
         rospy.loginfo("You can only use kinect or a webcam")
         os._exit()
     if input_arg.img_src == "w":
-	# TODO(gazialankus) make this a parameter
-        cam = cv2.VideoCapture("rtsp://192.168.137.17:8554/1.3gp") # change int to corresponding camera number
-        # cam = cv2.VideoCapture(0) # change int to corresponding camera number
+        cam = cv2.VideoCapture(input_arg.cam_address)
     else:
         import freenect
 
-    rospy.init_node("cam_rgb_pub")
-    ic = ImagePublisher(input_arg)
+
+    ic = ImagePublisher()
     rate = rospy.Rate(30)
     try:
         while not rospy.is_shutdown():
             if input_arg.img_src == "w":
-                ic.get_rgb(input_arg, cam)
+                ic.get_rgb(cam)
             else:
-                freenect.runloop(video=ic.get_rgb(input_arg), body=ic.body(input_arg))
+                freenect.runloop(video=ic.get_rgb(), body=ic.body())
             rate.sleep()
     except KeyboardInterrupt:
         print("shutting down ros")
 
 if __name__ == '__main__':
     try:
-        main(input_arg)
+        main()
     except rospy.ROSInterruptException:
         pass
