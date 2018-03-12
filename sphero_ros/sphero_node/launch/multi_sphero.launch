@@ -22,9 +22,11 @@
     </node>
   </group>
 
+<!-- adds the topics /sphero1/ etc. broken.
   <node pkg="sphero_node" type="sphero_test.py" name="sphero_control">
     <param name="num_spheros"  value="2" />
   </node>
+-->
 
 <!--  <node pkg="joy" type="joy_node" name="joy"/> -->
 
