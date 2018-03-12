@@ -218,6 +218,11 @@ class NotificationDelegate(DefaultDelegate):
       while len(data) > 0:
         data = self.dataBuffer + data
         if data[:2] ==  "".join(RECV['SYNC']):
+          if len(data) < 5:
+            sys.stderr.write("SHORT " + repr(len(data)) + "\n")
+            sys.stderr.write("SHORT " + repr(data) + "\n")
+            self.dataBuffer = ""
+            return
           data_length = ord(data[4])
           if data_length + 5 <= len(data):
             data = data[(5 + data_length):len(data)]

@@ -38,7 +38,9 @@ class TagsGrabber:
                                         self.callbackT, queue_size=1)
 
     def callbackT(self, data):
-        self.tags_new = data;
+        print("\nRECEIVED TAGGED:")
+        print(data)
+        self.tags_new = data
 
     def get_tags_new(self):
         return self.tags_new
@@ -53,6 +55,8 @@ class PosGrabber:
                                         self.callbackP, queue_size=1)
 
     def callbackP(self, data):
+        print("\nRECEIVED DETECTED:")
+        print(data)
         self.pos_new = data
 
     def get_pos_new(self):
@@ -87,6 +91,11 @@ class Tracker(TagsGrabber, PosGrabber):
         return (pos_old, pos_ordered)
 
     def nn_search(self, n_old, n_new, pos_old, pos_ordered ):
+        print("\n***NN SEARCH ")
+        print(n_old)
+        print(n_new)
+        print(pos_old)
+        print(pos_ordered)
         dist = np.zeros(n_old*n_new) # distance between points
         idx = np.zeros((2,n_old*n_new)) # index of pairs of points (old and new) corresponding to distances in dist
         pt_idx = np.zeros(n_old) # indicies of pos_new matched to pos_old in the latter's order
@@ -127,6 +136,8 @@ class Tracker(TagsGrabber, PosGrabber):
 
         pos_ordered.data = pos_ordered_temp
         self.pos_pub.publish(pos_ordered)
+        print("\n***ORDERED")
+        print(pos_ordered)
         return pos_ordered
 
 def main():
@@ -141,9 +152,16 @@ def main():
         while not rospy.is_shutdown():
             if not (first == 0):
                 (pos_old, pos_ordered) = tr.delay(pos_old, pos_ordered)
+                print("\n***AFTER DELAY: ")
+                print(pos_old)
+                print(pos_ordered)
+                print(first)
                 first -=1
             else: # initialization of pos_old and pos_ordered complete --> track
                 (pos_old, pos_ordered) = tr.order(first, pos_old, pos_ordered)
+                print("\n***ORDER: ")
+                print(pos_old)
+                print(pos_ordered)
             rate.sleep()
     except KeyboardInterrupt:
         print("shutting down ros")

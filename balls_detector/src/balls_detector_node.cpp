@@ -288,6 +288,7 @@ private:
                   locs.data.push_back(keyImg[i].pt.y);
 
                   circle(result, k->pt, (int)k->size, Scalar(0, 255, 255), 1);
+                  putText(result, "hele", k->pt + Point2f(0, 2 * k->size), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 0, 255), 3);
                 }
                 // TODO would this ever publish more balls than there is?
                 locs_pub_.publish(locs);
