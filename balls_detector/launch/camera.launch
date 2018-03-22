@@ -20,19 +20,19 @@ this was for locally connected cameras that support some fancy commands. we do n
  </group>
 -->
 
-{#
+<!--  
 
 cam_bridge aka cam_rgb_pub
 publishes: /cam/image/rgb
 
-#}
+-->
 
   <node pkg="balls_detector" type="cam_bridge.py" name="cam_bridge">
     <param name="img_src" value="$(arg img_src)"/>
     <param name="cam_address" value="$(arg cam_address)"/>
   </node>
 
-{#
+<!--
 tagger aka sphero_detector_node
 
 uses params:    /tagger/Blob_Params/*
@@ -48,13 +48,13 @@ turns one sprk on, detects the shiny, says this was it.
 does not make use of the difference created by turning on.
 TODO should do that. should capture - turn on/off - capture again and use the difference as the item.
 
-#}
+-->
 
-{#  <node pkg="balls_detector" type="tagger" name="tagger">#}
-{#    <rosparam command="load" file="$(find balls_detector)/config/tag_param.yaml"/>#}
-{#  </node>#}
+<!--  <node pkg="balls_detector" type="tagger" name="tagger">-->
+<!--    <rosparam command="load" file="$(find balls_detector)/config/tag_param.yaml"/>-->
+<!--  </node>-->
 
-{#
+<!--
 balls_detector aka sphero_detector_node (tagger was also this)
 
 uses params:    /balls_detector_node/Blob_Params/*
@@ -65,13 +65,13 @@ publishes:      /locs/detected
 
 simply detects and publishes shiny objects...
 
-#}
+-->
 
   <node pkg="balls_detector" type="balls_detector_node" name="balls_detector_node">
     <rosparam command="load" file="$(find balls_detector)/config/detect_param.yaml"/>
   </node>
 
-{#
+<!--
 tracker aka tracked_pos
 
 uses params:    /tracker/Rob_Params/num_rob
@@ -84,11 +84,11 @@ publishes:      /locs/ordered
 TODO go over this, and then reorganize this stuff to make it really work.
 TODO Maybe start from scratch...
 
-#}
+-->
 
-{#  <node pkg="balls_detector" type="tracker.py" name="tracker">#}
-{#    <rosparam command="load" file="$(find balls_detector)/config/track_param.yaml"/>#}
-{#  </node>#}
+<!--  <node pkg="balls_detector" type="tracker.py" name="tracker">-->
+<!--    <rosparam command="load" file="$(find balls_detector)/config/track_param.yaml"/>-->
+<!--  </node>-->
 
   <node pkg="balls_tracker" type="balls_tracker.py" name="balls_tracker">
     <rosparam command="load" file="$(find balls_detector)/config/robots_param.yaml"/>

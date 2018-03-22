@@ -46,6 +46,7 @@ private:
   image_transport::ImageTransport it_;
   image_transport::Subscriber image_sub_;
   ros::Publisher locs_pub_;
+  ros::Publisher locs_color_pub_;
 
   const unsigned long hardware_threads;
   cv::Mat color;
@@ -67,6 +68,7 @@ public:
     windowName = "cam_rgb";
     image_sub_ = it_.subscribe("/cam/image/rgb", 1, &Receiver::imageCallback, this);
     locs_pub_ = nh_.advertise<std_msgs::Float64MultiArray>("/locs/detected", 1000);
+    locs_color_pub_ = nh_.advertise<std_msgs::Float64MultiArray>("/locs/detected_with_color", 1000);
 
     imageDispThread = std::thread(&Receiver::imageDisp, this);
   }
@@ -122,7 +124,7 @@ private:
     cv_bridge::CvImageConstPtr cv_ptr;
     try
     {
-      cv_ptr = cv_bridge::toCvShare(msgImage, sensor_msgs::image_encodings::MONO8);
+      cv_ptr = cv_bridge::toCvShare(msgImage, sensor_msgs::image_encodings::BGR8);
     }
     catch (cv_bridge::Exception& e)
     {
@@ -147,7 +149,7 @@ private:
         updateImage = false;
 
         detectBlobs(std::move(color), std::move(blob_circs));
-        cv::imshow(windowName, blob_circs);
+        //cv::imshow(windowName, blob_circs);
       }
 
       int key = cv::waitKey(1);
@@ -276,22 +278,53 @@ private:
             {
                 Ptr<SimpleBlobDetector> sbd = b.dynamicCast<SimpleBlobDetector>();
                 sbd->detect(img, keyImg, Mat());
-                drawKeypoints(img, keyImg, result);
+                //drawKeypoints(img, keyImg, result);
                 std_msgs::Float64MultiArray locs;
+                std_msgs::Float64MultiArray locs_color;
                 locs.data.clear();
+                locs_color.data.clear();
 
                 int i = 0;
                 for (vector<KeyPoint>::iterator k = keyImg.begin(); k != keyImg.end(); ++k, ++i)
                 {
-                  cout << i << ": "<< keyImg[i].pt.x<<";"<<keyImg[i].pt.y<<endl;
+                  cout << i << ": "<< keyImg[i].pt.x<<";"<<keyImg[i].pt.y<< "\t";
                   locs.data.push_back(keyImg[i].pt.x);
                   locs.data.push_back(keyImg[i].pt.y);
+                  locs_color.data.push_back(keyImg[i].pt.x);
+                  locs_color.data.push_back(keyImg[i].pt.y);
+
+                  KeyPoint &kp = keyImg[i];
+
+                  float usedSize = 1.5f * kp.size;
+
+                  Mat roi(img, Rect(Point(kp.pt.x - usedSize / 2, kp.pt.y - usedSize / 2), Size(usedSize, usedSize)));
+
+                  float radius = usedSize / 2;
+
+                  Mat mask = Mat::zeros(roi.size(), CV_8U);
+
+                  circle(mask, Point(radius, radius), radius, 1, -1);
+
+                  //Mat cropped = roi & mask;
+
+                  Scalar meanColor = mean(roi, mask);
+
+                  // TODO this is BGR
+                  cout << "MEAN: " << meanColor[0] << ", " << meanColor[1] << ", " << meanColor[2] << ", " << meanColor[3] << " \t" << i << endl;
+
+
+                  locs_color.data.push_back(meanColor[0]);
+                  locs_color.data.push_back(meanColor[1]);
+                  locs_color.data.push_back(meanColor[2]);
+
+                  cv::imshow(windowName, roi);
 
                   circle(result, k->pt, (int)k->size, Scalar(0, 255, 255), 1);
                   putText(result, "hele", k->pt + Point2f(0, 2 * k->size), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 0, 255), 3);
                 }
-                // TODO would this ever publish more balls than there is?
+                // this publishes more balls than there is, you have to ignore some.
                 locs_pub_.publish(locs);
+                locs_color_pub_.publish(locs_color);
             }
         }
         catch (Exception& e)
