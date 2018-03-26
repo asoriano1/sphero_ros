@@ -5,7 +5,7 @@
 <launch>
 
   <arg name="img_src" default="w"/>
-  <arg name="cam_address" default="rtsp://192.168.1.11:8554/1.3gp"/>
+  <arg name="cam_address" default="rtsp://192.168.1.12:8554/1.3gp"/>
 
 <!--  
 this was for locally connected cameras that support some fancy commands. we do not need it.

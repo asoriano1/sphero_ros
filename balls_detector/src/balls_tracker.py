@@ -15,6 +15,7 @@ class BallsTracker:
         numBlobs = len(msg.data) / 5
 
         for i in range(0, numBlobs):
+            pass
             # TODO go through each entry and compare it to the desired colors as well as the previous positions
 
         detectedBlobColors = []  # get this from opencv
