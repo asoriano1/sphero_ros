@@ -123,7 +123,7 @@ def cam_overlay():
 
     cv2.namedWindow("Detected")
     cv2.moveWindow("Detected", 100, 500)
-    cv2.resizeWindow("Detected", 640, 480)
+    #cv2.resizeWindow("Detected", 640, 480)
 
     while True:
         if image is not None and isImageDirty:

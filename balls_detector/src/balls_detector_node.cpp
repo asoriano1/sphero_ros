@@ -66,6 +66,7 @@ public:
   {
 
     windowName = "cam_rgb";
+
     image_sub_ = it_.subscribe("/cam/image/rgb", 1, &Receiver::imageCallback, this);
     locs_pub_ = nh_.advertise<std_msgs::Float64MultiArray>("/locs/detected", 1000);
     locs_color_pub_ = nh_.advertise<std_msgs::Float64MultiArray>("/locs/detected_with_color", 1000);
@@ -136,9 +137,10 @@ private:
 
   void imageDisp()
   {
-    cv::Mat color, blob_circs(640, 480, CV_8UC3);
+    cv::Mat color, blob_circs;//(640, 480, CV_8UC3);
     cv::namedWindow(windowName, cv::WINDOW_NORMAL);
-    cv::resizeWindow(windowName, 640, 480) ;
+    //cv::resizeWindow(windowName, 640, 480) ;
+    cv::moveWindow(windowName, 100, 800);
 
     for(; running && ros::ok() ;)
     {
@@ -276,8 +278,10 @@ private:
             Mat     desc; //, result(img.rows, img.cols, CV_8UC3);
             if (b.dynamicCast<SimpleBlobDetector>() != NULL)
             {
+                Mat img_lab;
+                cvtColor(img, img_lab, CV_BGR2GRAY); // TODO make this monochrome
                 Ptr<SimpleBlobDetector> sbd = b.dynamicCast<SimpleBlobDetector>();
-                sbd->detect(img, keyImg, Mat());
+                sbd->detect(img_lab, keyImg, Mat());
                 //drawKeypoints(img, keyImg, result);
                 std_msgs::Float64MultiArray locs;
                 std_msgs::Float64MultiArray locs_color;

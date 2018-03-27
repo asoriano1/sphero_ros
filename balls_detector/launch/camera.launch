@@ -90,9 +90,11 @@ TODO Maybe start from scratch...
 <!--    <rosparam command="load" file="$(find balls_detector)/config/track_param.yaml"/>-->
 <!--  </node>-->
 
-  <node pkg="balls_tracker" type="balls_tracker.py" name="balls_tracker">
+<!--
+  <node pkg="balls_detector" type="balls_tracker.py" name="balls_tracker">
     <rosparam command="load" file="$(find balls_detector)/config/robots_param.yaml"/>
   </node>
+-->
 
   <node pkg="balls_detector" type="cam_overlay.py" name="cam_overlay">
   </node>

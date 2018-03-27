@@ -26,6 +26,7 @@
   <run_depend>cv_bridge</run_depend>
   <run_depend>opencv2</run_depend>
   <run_depend>std_msgs</run_depend>
+  <run_depend>munkres</run_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
