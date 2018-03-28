@@ -393,8 +393,11 @@ class BallsTracker:
 
         print("\n\nnamed: ")
         print(named_spheros)
+        
         print("\n\ncrap: ")
         print(crap_blobs)
+        
+        self.publish_named_sphero_positions(named_spheros, self.sphero_names)
 
 
 
@@ -433,16 +436,29 @@ class BallsTracker:
                 sphero_name = topic.split('/')[1]
                 names_set.add(sphero_name)
 
-        self.sphero_names = list(names_set
-                                 )
+        self.sphero_names = list(names_set)
         print("sphero names:")
 
         for name in self.sphero_names:
             print(name)
+            print("{0}".format(name))
         print("^sphero names:")
 
-    def callback(self, data):
-        rospy.loginfo(rospy.get_caller_id() + "I heard %s", data.data)
+    @staticmethod
+    def publish_named_sphero_positions(named_spheros, sphero_names):
+        for i in range(0, len(sphero_names)):
+            name = sphero_names[i]
+            pos = named_spheros[i].position
+
+            print(name)
+            print(pos)
+            topic = "/{0}/cam_image_pos".format(name)
+            print(topic)
+
+            pub = rospy.Publisher(topic, Float64MultiArray, latch=True, queue_size=1)
+            pos_msg = Float64MultiArray()
+            pos_msg.data = pos
+            pub.publish(pos_msg)
 
 
 if __name__ == '__main__':
