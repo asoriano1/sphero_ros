@@ -42,7 +42,11 @@ def calculate_increase_between_hues(hue1, hue2):
 
 
 def calculate_hue_increase(bgr1, bgr2):
-    return calculate_increase_between_hues(bgr2hue(bgr1), bgr2hue(bgr2))
+    hue1 = bgr2hue(bgr1)
+    hue2 = bgr2hue(bgr2)
+    print("hue 1: {0}".format(hue1))
+    print("hue 2: {0}".format(hue2))
+    return calculate_increase_between_hues(hue1, hue2), hue2
 
 
 def bgr2hsv(color_bgr):
@@ -55,7 +59,7 @@ def bgr2hsv(color_bgr):
 def bgr2hue(bgr):
     hsv = bgr2hsv(bgr)
     # [[[ 97  49 252]]]
-    return hsv[0][0][0]
+    return int(hsv[0][0][0])
 
 
 class BallsTracker:
@@ -182,6 +186,11 @@ class BallsTracker:
         munkres = Munkres()
         indices = munkres.compute(distance_mat) # this has the assignments. nothing else is necessary.
 
+        print("\nindices (wi->ci):")
+        for wi, ci in indices:
+            print("{0}->{1}".format(wi, ci))
+
+
         # step 2: calculate the changes in hue
         #           the one that decreased the most is green
         #           the one that increased the most is red
@@ -192,6 +201,107 @@ class BallsTracker:
         # for each other dead blob
         #   pos/color
 
+        ci_red, ci_green, wi_red, wi_green = self.identify_using_hue_absolutes(white_blobs, colored_blobs, indices)
+
+        print("\nred wi, ci: {0} {1}".format(wi_red, ci_red))
+        print("green wi, ci: {0} {1}".format(wi_green, ci_green))
+        print("\nwb: ")
+        for wb in white_blobs:
+            print(wb)
+        print("\ncb: ")
+        for cb in colored_blobs:
+            print(cb)
+
+
+        named_spheros = []
+        crap_blobs = []
+
+        for i in range(0, len(sphero_names)):
+            selected = None
+
+            if self.desired_robot_rgbs[i] == self.sp_red:
+                selected = colored_blobs[ci_red]
+                print("{1}({0}) is red".format(sphero_names[i], i))
+
+            elif self.desired_robot_rgbs[i] == self.sp_green:
+                selected = colored_blobs[ci_green]
+                print("{1}({0}) is green".format(sphero_names[i], i))
+
+            named_spheros.append(selected)
+
+        print("\ncraps:")
+        # risking double-counting here to prevent having different blinking crap sources from becoming one.
+        print("-ci:")
+        for i in range(0, len(colored_blobs)):
+            if i != ci_red and i != ci_green:
+                print(i)
+                crap_blobs.append(colored_blobs[i])
+
+        print("-wi:")
+        for i in range(0, len(white_blobs)):
+            if i != wi_red and i != wi_green:
+                print(i)
+                crap_blobs.append(white_blobs[i])
+
+        return named_spheros, crap_blobs
+
+    @staticmethod
+    def calculate_hue_change_absolutes(white_blobs, colored_blobs, indices):
+
+        changes = [0] * len(indices)
+        final_hues = [0] * len(indices)
+        i = 0
+        for wi, ci in indices:
+            hue_increase, final_hue = calculate_hue_increase(white_blobs[wi].colorBGR, colored_blobs[ci].colorBGR)
+
+            changes[i] = abs(hue_increase)
+            final_hues[i] = final_hue
+            i += 1
+
+            print("{0},{1}: {2}".format(wi, ci, hue_increase))
+
+        return changes, final_hues
+
+    @staticmethod
+    def identify_using_hue_absolutes(white_blobs, colored_blobs, indices):
+        # it needs to change, as well as land on a red/green area
+        # order them by absolute hue changes. go over that change list one by one and greedily choose.
+
+        hue_changes, final_hues = BallsTracker.calculate_hue_change_absolutes(white_blobs, colored_blobs, indices)
+
+        # sort the indices
+        sorted_indices = np.argsort(hue_changes)
+
+        ci_red = None
+        ci_green = None
+        wi_red = None
+        wi_green = None
+
+        for i in reversed(sorted_indices):
+            # hue_change = hue_changes[i]
+            final_hue = final_hues[i]
+
+            # if red is not chosen and this fits, choose this as red.
+            if ci_red is None and BallsTracker.is_hue_red(final_hue):
+                ci_red = indices[i][1]
+                wi_red = indices[i][0]
+
+            if ci_green is None and not BallsTracker.is_hue_red(final_hue):
+                ci_green = indices[i][1]
+                wi_green = indices[i][0]
+
+            if ci_red is not None and ci_green is not None:
+                break
+
+        return ci_red, ci_green, wi_red, wi_green
+
+    @staticmethod
+    def is_hue_red(hue):
+        return hue < 30 or hue > 120
+
+    # unused
+    @staticmethod
+    def identify_using_hue_change(white_blobs, colored_blobs, indices):
         first = True
         ci_least_increment = 0
         wi_least_increment = 0
@@ -199,11 +309,11 @@ class BallsTracker:
         ci_most_increment = 0
         wi_most_increment = 0
         most_increment_value = 0
-
         # calculateHueChange
-
+        print("\nhue increases: ")
         for wi, ci in indices:
             hue_increase = calculate_hue_increase(white_blobs[wi].colorBGR, colored_blobs[ci].colorBGR)
+            print("{0},{1}: {2}".format(wi, ci, hue_increase))
 
             if first or hue_increase < least_increment_value:
                 ci_least_increment = ci
@@ -216,37 +326,15 @@ class BallsTracker:
                 most_increment_value = hue_increase
 
             first = False
-
         # this didn't work with my cellphone in the mix... TODO print everything out and understand what went down
         ci_red = ci_most_increment
         ci_green = ci_least_increment
+        wi_red = wi_most_increment
+        wi_green = wi_least_increment
 
-        named_spheros = []
-        crap_blobs = []
-
-        for i in range(0, len(sphero_names)):
-            selected = None
-
-            if self.desired_robot_rgbs[i] == self.sp_red:
-                selected = colored_blobs[ci_red]
-                print("{0} is red".format(i))
-
-            elif self.desired_robot_rgbs[i] == self.sp_green:
-                selected = colored_blobs[ci_green]
-                print("{0} is green".format(i))
-
-            named_spheros.append(selected)
-
-        # risking double-counting here to prevent having different blinking crap sources from becoming one.
-        for i in range(0, len(colored_blobs)):
-            if i != ci_least_increment and i != ci_most_increment:
-                crap_blobs.append(colored_blobs[i])
-
-        for i in range(0, len(white_blobs)):
-            if i != wi_least_increment and i != wi_most_increment:
-                crap_blobs.append(white_blobs[i])
-
-        return named_spheros, crap_blobs
+        print("\nci_red: {0}({1}->{2})".format(ci_red, wi_most_increment, ci_most_increment))
+        print("\nci_green: {0}({1}->{2})".format(ci_green, wi_least_increment, ci_least_increment))
+        return ci_red, ci_green, wi_red, wi_green
 
 
     def main(self):
