@@ -403,28 +403,6 @@ class BallsTracker:
 
 
 
-
-        # what if it flickers? should I keep detected ones for a couple of frames? no cuz then you'll have to match existing ones with prev frame.
-
-        # so, I grab the current detected positions and act on it
-        # do the tagging protocol first.
-        # then publish/subscribe under the existing robots. one level down maybe, like /sphero_2342/cam/pos etc.
-
-
-        # constant tagging:
-        #   I have all the robots on
-        #   decide on a color for each robot
-        #   among the tagged points, choose the one that's closest to the color
-
-        # ensured tagging and with multiple robots
-        #   turn one off
-        #   see which one turned off
-        #   if multiple, retry and remember. intersection is our robot. the other goes into the ignore list.
-
-
-
-
-        # spin() simply keeps python from exiting until this node is stopped
         rospy.spin()
 
     def collect_sphero_names(self):
