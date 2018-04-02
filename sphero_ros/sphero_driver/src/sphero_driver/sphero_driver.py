@@ -614,7 +614,7 @@ class Sphero(threading.Thread):
 
         :param response: request response back from Sphero.
         """
-        self.send(self.pack_cmd(REQ['CMD_GET_AUTO_RECONNECT'], []), reponse)
+        self.send(self.pack_cmd(REQ['CMD_GET_AUTO_RECONNECT'], []), response)
 
     def get_power_state(self, response):
         """
