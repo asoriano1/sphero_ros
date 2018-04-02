@@ -11,6 +11,8 @@ import threading
 last_tagged_data = []
 last_detected_data = []
 last_ordered_data = []
+last_crap_data = []
+named_positions = {}
 
 height = 0
 width = 0
@@ -43,6 +45,23 @@ def ordered_callback(data):
     isImageDirty = True
 
 
+def crap_callback(data):
+    rospy.loginfo(rospy.get_caller_id() + " crap_callback %s", data.data)
+    global last_crap_data, isImageDirty
+
+    last_crap_data = data.data
+    isImageDirty = True
+
+
+def name_callback(data):
+    rospy.loginfo(rospy.get_caller_id() + " name_callback %s", data.data)
+    print(data._connection_header)
+    name = data._connection_header['topic'].split('/')[1]
+    global named_positions, isImageDirty
+
+    named_positions[name] = data.data
+    isImageDirty = True
+
 # def update_window(event):
 #     global height, width, image, isImageDirty
 #
@@ -72,7 +91,7 @@ def image_callback(event):
     height = event.height
     width = event.width
 
-    rospy.loginfo("***************height %s, width %s " % (height, width))
+    # rospy.loginfo("***************height %s, width %s " % (height, width))
 
     isImageDirty = True
 
@@ -109,15 +128,35 @@ def draw_points_in_array(img, data, line_color, text_color, note, text_placement
             draw_x(img, p, 10, text_pos, "%s%s" % (note, i), line_color, text_color)
 
 
+def collect_sphero_names():
+    global sphero_names
+
+    all_topics_and_types = rospy.get_published_topics()
+    names_set = set()
+    for topicAndType in all_topics_and_types:
+        topic = topicAndType[0]
+        if topic.startswith('/sphero'):
+            sphero_name = topic.split('/')[1]
+            names_set.add(sphero_name)
+
+    sphero_names = list(names_set)
+
 def cam_overlay():
-    global image_subscription, lock, image
+    global image_subscription, lock, image, sphero_names
     rospy.init_node('cam_overlay')
 
     rospy.loginfo("cam_overlay started !!!!!!!!!!!!!")
 
+    collect_sphero_names()
+
     rospy.Subscriber("/locs/tagged", Float64MultiArray, tagged_callback)
     rospy.Subscriber("/locs/detected", Float64MultiArray, detected_callback)
     rospy.Subscriber("/locs/ordered", Float64MultiArray, ordered_callback)
+    rospy.Subscriber("/locs/crap", Float64MultiArray, crap_callback)
+
+    for name in sphero_names:
+        topic = "/{0}/cam_image_pos".format(name)
+        rospy.Subscriber(topic, Float64MultiArray, name_callback)
 
     image_subscription = rospy.Subscriber("/cam/image/rgb", Image, image_callback)
 
@@ -129,20 +168,33 @@ def cam_overlay():
         if image is not None and isImageDirty:
             #image = np.zeros((height, width, 3), np.uint8)
 
-            rospy.loginfo("============= BEFORE SHOW LOCK ======================")
+
+            # rospy.loginfo("============= BEFORE SHOW LOCK ======================")
             with lock:
                 line_color = (0, 255, 0)
+                crap_color = (255, 0, 0)
                 text_color = (0, 255, 0)
                 # write on the corner of screen if array empty
                 draw_points_in_array(image, last_ordered_data, line_color, text_color, "Or", "Top")
                 draw_points_in_array(image, last_detected_data, line_color, (0, 255, 255), "Dt", "Right")
                 draw_points_in_array(image, last_tagged_data, line_color, (255, 0, 255), "Tg", "Left")
+                draw_points_in_array(image, last_crap_data, crap_color, crap_color, "Cr", "Left")
+
+                robotpositions = []
+
+                for name in sphero_names:
+                    if name in named_positions:
+                        robotpositions += named_positions[name]
+
+                robot_color = (0, 0, 255)
+                draw_points_in_array(image, robotpositions, robot_color, robot_color, "R", "Top")
+
 
                 # cv2.rectangle(image, (x, y), (x + 100, y + 100), (255, 255, 255))
                 # x += 1
                 # y += 1
                 cv2.imshow("Detected", image)
-            rospy.loginfo("============= AFTER SHOW LOCK ======================")
+            # rospy.loginfo("============= AFTER SHOW LOCK ======================")
 
         cv2.waitKey(20)
 

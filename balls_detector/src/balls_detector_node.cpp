@@ -296,6 +296,7 @@ private:
                   locs.data.push_back(keyImg[i].pt.y);
                   locs_color.data.push_back(keyImg[i].pt.x);
                   locs_color.data.push_back(keyImg[i].pt.y);
+                  locs_color.data.push_back(keyImg[i].size);
 
                   KeyPoint &kp = keyImg[i];
 

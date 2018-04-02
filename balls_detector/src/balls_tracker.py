@@ -8,15 +8,16 @@ from munkres import Munkres
 
 
 class PositionAndColor:
-    def __init__(self, position, colorBGR):
+    def __init__(self, position, colorBGR, size):
         self.position = position
         self.colorBGR = colorBGR
+        self.size = size
 
     def __str__(self):
-        return "p: {0} \tc: {1}".format(self.position, self.colorBGR)
+        return "p: {0} \tc: {1} \ts: {2}".format(self.position, self.colorBGR, self.size)
 
     def __repr__(self):
-        return "p: {0} \tc: {1}".format(self.position, self.colorBGR)
+        return "p: {0} \tc: {1} \ts: {2}".format(self.position, self.colorBGR, self.size)
 
 
 def cvbgr2sp(sp_color):
@@ -69,11 +70,13 @@ class BallsTracker:
     hardcoded_blobs = [
         PositionAndColor(
             (694.4015502929688, 459.9547424316406),
-            (234.45545796737767, 245.04642409033877, 193.02383939774154)
+            (234.45545796737767, 245.04642409033877, 193.02383939774154),
+            10
         ),
         PositionAndColor(
             (576.946044921875, 415.176513671875),
-            (221.13832199546485, 198.6235827664399, 219.40136054421768)
+            (221.13832199546485, 198.6235827664399, 219.40136054421768),
+            10
         )
     ]
 
@@ -88,11 +91,16 @@ class BallsTracker:
         new_blobs = []
 
         for i in range(0, num_blobs):
-            p = i * 5
-            blob = PositionAndColor((msg.data[p], msg.data[p + 1]), (msg.data[p + 2], msg.data[p + 3], msg.data[p + 4]))
+            p = i * 6
+            blob = PositionAndColor(
+                (msg.data[p], msg.data[p + 1]),
+                (msg.data[p + 3], msg.data[p + 4], msg.data[p + 5]),
+                msg.data[p + 2]
+            )
             new_blobs.append(blob)
 
         self.current_blobs = new_blobs
+        self.current_blobs_time = rospy.get_rostime()
 
             # TODO go through each entry and compare it to the desired colors as well as the previous positions
 
@@ -145,7 +153,7 @@ class BallsTracker:
             print(blob.colorBGR)
 
         # create a copy maybe?
-        return self.current_blobs
+        return self.current_blobs, self.current_blobs_time
 
 
     def print_blobs(self, blobs):
@@ -173,18 +181,7 @@ class BallsTracker:
         # row: white_blobs
         # col: colored_blobs
 
-        distance_mat = np.empty([len(white_blobs), len(colored_blobs)])
-
-        for wi in range(0, len(white_blobs)):
-            for ci in range(0, len(colored_blobs)):
-                white_pos = white_blobs[wi].position
-                colored_pos = colored_blobs[ci].position
-                v = np.array(white_pos) - np.array(colored_pos)
-                d = np.linalg.norm(v)
-                distance_mat[wi, ci] = d
-
-        munkres = Munkres()
-        indices = munkres.compute(distance_mat) # this has the assignments. nothing else is necessary.
+        indices = self.match_with_munkres(colored_blobs, white_blobs)
 
         print("\nindices (wi->ci):")
         for wi, ci in indices:
@@ -243,7 +240,43 @@ class BallsTracker:
                 print(i)
                 crap_blobs.append(white_blobs[i])
 
+        for crap in crap_blobs:
+            crap.time = rospy.get_rostime()
+
         return named_spheros, crap_blobs
+
+    def match_with_munkres(self, blobs1, blobs2):
+        print("blobs1: ")
+        print(blobs1)
+        print("blobs2: ")
+        print(blobs2)
+        distance_mat = np.empty([len(blobs2), len(blobs1)])
+        for wi in range(0, len(blobs2)):
+            print("wi{0}".format(wi))
+            for ci in range(0, len(blobs1)):
+                print("ci{0}".format(ci))
+                white_pos = blobs2[wi].position
+                colored_pos = blobs1[ci].position
+                v = np.array(white_pos) - np.array(colored_pos)
+                d = np.linalg.norm(v)
+                distance_mat[wi, ci] = d
+                print("\t{0}".format(d))
+
+        transpose = distance_mat.shape[0] > distance_mat.shape[1]
+
+        if transpose:
+            distance_mat = distance_mat.T
+
+        munkres = Munkres()
+        indices = munkres.compute(distance_mat)  # this has the assignments. nothing else is necessary.
+
+        if not transpose:
+            return indices
+        else:
+            tin = []
+            for indpair in indices:
+                tin.append((indpair[1], indpair[0]))
+            return tin
 
     @staticmethod
     def calculate_hue_change_absolutes(white_blobs, colored_blobs, indices):
@@ -349,7 +382,7 @@ class BallsTracker:
         # now I know how many spheros are there
         # I also receive the detected positions
 
-        cam_delay_secs = 5
+        cam_delay_secs = 2
 
         rospy.Subscriber("/locs/detected_with_color", Float64MultiArray, self.detected_callback)
 
@@ -358,7 +391,7 @@ class BallsTracker:
         rospy.sleep(cam_delay_secs)
 
         rospy.loginfo("Collecting white blobs for each sphero.")
-        white_blobs = self.collect_blobs()
+        white_blobs, white_blobs_time = self.collect_blobs()
 
         # would be better to use the same rois, but it's not done here so I won't. just a thought.
         rospy.loginfo("Setting colors and will collect them back from blobs.")
@@ -369,7 +402,7 @@ class BallsTracker:
         rospy.sleep(cam_delay_secs)
 
         rospy.loginfo("Collecting colored blobs for each sphero.")
-        colored_blobs = self.collect_blobs()
+        colored_blobs, colored_blobs_time = self.collect_blobs()
 
         print("\n\nwhite_blobs\n")
         self.print_blobs(white_blobs)
@@ -399,11 +432,36 @@ class BallsTracker:
         
         self.publish_named_sphero_positions(named_spheros, self.sphero_names)
 
+        current_blobs_time = colored_blobs_time
 
+        rate = rospy.Rate(10)
 
+        while not rospy.is_shutdown():
 
+            new_blobs, new_blobs_time = self.collect_blobs()
 
-        rospy.spin()
+            if current_blobs_time != new_blobs_time:
+                named_spheros_new, crap_blobs_new = self.track_spheros_update(named_spheros, crap_blobs, new_blobs)
+                # ^returns None, None if not enough robots.
+
+                if named_spheros_new is not None:
+
+                    #update
+                    named_spheros = named_spheros_new
+                    crap_blobs = crap_blobs_new
+                    current_blobs_time = new_blobs_time
+
+                    #publish
+                    self.publish_named_sphero_positions(named_spheros, self.sphero_names)
+                    self.publish_crap_positions(crap_blobs)
+
+        # next steps
+            # prevent balls from turning red bc of battery level.
+                # find a way to put them in/out of charger
+            # control robots
+            # be ready for any errors
+
+            rate.sleep()
 
     def collect_sphero_names(self):
         all_topics_and_types = rospy.get_published_topics()
@@ -437,6 +495,116 @@ class BallsTracker:
             pos_msg = Float64MultiArray()
             pos_msg.data = pos
             pub.publish(pos_msg)
+
+    @staticmethod
+    def publish_crap_positions(crap_blobs):
+        crap_pos = []
+
+        for crap in crap_blobs:
+            crap_pos += list(crap.position)
+
+        topic = "/locs/crap"
+
+        pub = rospy.Publisher(topic, Float64MultiArray, latch=True, queue_size=1)
+        pos_msg = Float64MultiArray()
+        pos_msg.data = crap_pos
+        pub.publish(pos_msg)
+
+    @staticmethod
+    def intersects(blob1, blob2):
+        pos1 = blob1.position
+        pos2 = blob2.position
+        v = np.array(pos1) - np.array(pos2)
+        d = np.linalg.norm(v)
+
+        max_distance = blob1.size / 2 + blob2.size / 2
+
+        return d < max_distance
+
+    @staticmethod
+    def find_noncrap_blobs(new_blobs, crap_blobs):
+        noncrap_blobs = []
+
+        for new_blob in new_blobs:
+            intersects = False
+            for crap_blob in crap_blobs:
+                if BallsTracker.intersects(new_blob, crap_blob):
+                    crap_blob.time = rospy.get_rostime()
+                    intersects = True
+                    break
+            if not intersects:
+                noncrap_blobs.append(new_blob)
+
+        return noncrap_blobs
+
+    def track_spheros_update(self, named_spheros, crap_blobs, new_blobs):
+
+        print(named_spheros) #this has the poscolor of named ones from last frame.
+        print(crap_blobs) # this has the known positions of craps. can add to it if we detect new ones. don't remove in case of flickers.
+        print(new_blobs) # this is what the camera says
+
+        # filter out craps
+        # would be nice if I had blob sizes... I have'em lol
+
+        crap_blobs = self.forget_old_craps(crap_blobs)
+
+        noncrap_blobs = self.find_noncrap_blobs(new_blobs, crap_blobs)
+
+        # noncrap_blobs = filter(lambda x: x not in crap_intersect)
+        #
+        # print("{0}={1}+{2}".format(len(new_blobs), len(crap_intersect), len(noncrap_blobs)))
+        # assert(len(new_blobs) == len(crap_intersect) + len(noncrap_blobs))
+
+        # match with noncrap using munkres
+
+        indices = self.match_with_munkres(named_spheros, noncrap_blobs)
+
+        if len(indices) != len(named_spheros):
+            print("NUM MATCHES IS {0} AND NOT {1}".format(len(indices), len(named_spheros)))
+            return None, None
+
+        # see that they are at the same side of hue.
+        for oi, ni in indices:
+            old_hue = bgr2hue(named_spheros[oi].colorBGR)
+            new_hue = bgr2hue(noncrap_blobs[ni].colorBGR)
+
+            if BallsTracker.is_hue_red(old_hue) != BallsTracker.is_hue_red(new_hue):
+                print("OLD AND NEW HUES DON'T MATCH! DO SOMETHING")
+                return None, None
+
+        # create new named
+        named_spheros_new = []
+
+        for oi, ni in indices:
+            named_spheros_new.append(noncrap_blobs[ni])
+
+        crap_blobs_new = crap_blobs
+
+        for maybecrap in noncrap_blobs:
+            if maybecrap not in named_spheros_new:
+                maybecrap.time = rospy.get_rostime()
+                crap_blobs_new.append(maybecrap)
+
+        # assuming craps don't move
+            # should I put them in munkres?
+            # I won't accept it if it's close to crap. therefore no point in using crap.
+            # should filter out some blobs using craps
+                # then use munkres and hope them to be the same color still
+                # if munkres gives correct number (2)
+                    # if colors don't match, one of these could be crap? what can you do? nothing much.
+                # if munkres gives a lower number 0 or 1, this means I either
+                    # filtered them out as craps. reinclude craps?
+                        # if that does not help, probably got out of camera's view?
+
+        return named_spheros_new, crap_blobs_new
+
+    @staticmethod
+    def forget_old_craps(crap_blobs):  # TODO this does not seem to work!!!!!
+        new_crap = []
+        for crap in crap_blobs:
+            if rospy.Time.now() - crap.time < rospy.Duration(5): #FIXED, TEST THIS
+                new_crap.append(crap)
+        return new_crap
 
 
 if __name__ == '__main__':
