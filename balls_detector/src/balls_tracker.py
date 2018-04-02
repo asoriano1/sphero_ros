@@ -33,10 +33,10 @@ def calculate_increase_between_hues(hue1, hue2):
     range = 180
     diff = hue2 - hue1
 
-    while diff > range/2:
+    while diff > range / 2:
         diff -= range
 
-    while diff < -range/2:
+    while diff < -range / 2:
         diff += range
 
     return diff
@@ -102,13 +102,12 @@ class BallsTracker:
         self.current_blobs = new_blobs
         self.current_blobs_time = rospy.get_rostime()
 
-            # TODO go through each entry and compare it to the desired colors as well as the previous positions
+        # TODO go through each entry and compare it to the desired colors as well as the previous positions
 
         detectedBlobColors = []  # get this from opencv
         detectedBlobRobotIndices = []  # use the matching above as well as history (kalman) to decide on this. if in doubt, initiate a tag ensuring protocol. -1s for non-robot.
 
-
-        #cv2.cvtColor(CV_BGR2HSV)
+        # cv2.cvtColor(CV_BGR2HSV)
         #
         #
 
@@ -116,11 +115,7 @@ class BallsTracker:
         # have to play with colors because there can be better shiny candidates out there
         # so, all of them are white, then they get their own colors, then you see which one is which and which ones are bg.
 
-
-
         pass
-
-
 
     def all_spheros(self):
         return range(0, len(self.sphero_names))
@@ -142,7 +137,6 @@ class BallsTracker:
             pub.publish(*color)
             print("2")
 
-
     def collect_blobs(self):
         print("collect?")
         for i in range(0, len(self.current_blobs)):
@@ -155,15 +149,14 @@ class BallsTracker:
         # create a copy maybe?
         return self.current_blobs, self.current_blobs_time
 
-
     def print_blobs(self, blobs):
         print("BLOBS:{0}".format(len(blobs)))
 
         for i in range(0, len(blobs)):
             self.print_blob(blobs[i])
 
-
-    def print_blob(self, blob):
+    @staticmethod
+    def print_blob(blob):
         print("blob pos: ")
         print(blob.position)
         print("bolb colorBGR: ")
@@ -187,7 +180,6 @@ class BallsTracker:
         for wi, ci in indices:
             print("{0}->{1}".format(wi, ci))
 
-
         # step 2: calculate the changes in hue
         #           the one that decreased the most is green
         #           the one that increased the most is red
@@ -208,7 +200,6 @@ class BallsTracker:
         print("\ncb: ")
         for cb in colored_blobs:
             print(cb)
-
 
         named_spheros = []
         crap_blobs = []
@@ -369,7 +360,6 @@ class BallsTracker:
         print("\nci_green: {0}({1}->{2})".format(ci_green, wi_least_increment, ci_least_increment))
         return ci_red, ci_green, wi_red, wi_green
 
-
     def main(self):
         rospy.init_node('balls_tracker', anonymous=True)
 
@@ -426,10 +416,10 @@ class BallsTracker:
 
         print("\n\nnamed: ")
         print(named_spheros)
-        
+
         print("\n\ncrap: ")
         print(crap_blobs)
-        
+
         self.publish_named_sphero_positions(named_spheros, self.sphero_names)
 
         current_blobs_time = colored_blobs_time
@@ -445,19 +435,18 @@ class BallsTracker:
                 # ^returns None, None if not enough robots.
 
                 if named_spheros_new is not None:
-
-                    #update
+                    # update
                     named_spheros = named_spheros_new
                     crap_blobs = crap_blobs_new
                     current_blobs_time = new_blobs_time
 
-                    #publish
+                    # publish
                     self.publish_named_sphero_positions(named_spheros, self.sphero_names)
                     self.publish_crap_positions(crap_blobs)
 
-        # next steps
+            # next steps
             # prevent balls from turning red bc of battery level.
-                # find a way to put them in/out of charger
+            # find a way to put them in/out of charger
             # control robots
             # be ready for any errors
 
@@ -539,9 +528,9 @@ class BallsTracker:
 
     def track_spheros_update(self, named_spheros, crap_blobs, new_blobs):
 
-        print(named_spheros) #this has the poscolor of named ones from last frame.
-        print(crap_blobs) # this has the known positions of craps. can add to it if we detect new ones. don't remove in case of flickers.
-        print(new_blobs) # this is what the camera says
+        print(named_spheros)  # this has the poscolor of named ones from last frame.
+        print(crap_blobs)  # this has the known positions of craps. can add to it if we detect new ones. don't remove in case of flickers.
+        print(new_blobs)  # this is what the camera says
 
         # filter out craps
         # would be nice if I had blob sizes... I have'em lol
@@ -586,23 +575,23 @@ class BallsTracker:
                 crap_blobs_new.append(maybecrap)
 
         # assuming craps don't move
-            # should I put them in munkres?
-            # I won't accept it if it's close to crap. therefore no point in using crap.
-            # should filter out some blobs using craps
-                # then use munkres and hope them to be the same color still
-                # if munkres gives correct number (2)
-                    # if colors don't match, one of these could be crap? what can you do? nothing much.
-                # if munkres gives a lower number 0 or 1, this means I either
-                    # filtered them out as craps. reinclude craps?
-                        # if that does not help, probably got out of camera's view?
+        # should I put them in munkres?
+        # I won't accept it if it's close to crap. therefore no point in using crap.
+        # should filter out some blobs using craps
+        # then use munkres and hope them to be the same color still
+        # if munkres gives correct number (2)
+        # if colors don't match, one of these could be crap? what can you do? nothing much.
+        # if munkres gives a lower number 0 or 1, this means I either
+        # filtered them out as craps. reinclude craps?
+        # if that does not help, probably got out of camera's view?
 
         return named_spheros_new, crap_blobs_new
 
     @staticmethod
-    def forget_old_craps(crap_blobs):  # TODO this does not seem to work!!!!!
+    def forget_old_craps(crap_blobs):
         new_crap = []
         for crap in crap_blobs:
-            if rospy.Time.now() - crap.time < rospy.Duration(5): #FIXED, TEST THIS
+            if rospy.Time.now() - crap.time < rospy.Duration(5):
                 new_crap.append(crap)
         return new_crap
 
