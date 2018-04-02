@@ -71,6 +71,8 @@ def main():
         os._exit()
     if input_arg.img_src == "w":
         cam = cv2.VideoCapture(0)
+        cam.set(3, 960)
+        cam.set(4, 720)
     else:
         import freenect
 
