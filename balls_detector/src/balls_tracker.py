@@ -174,7 +174,7 @@ class BallsTracker:
         # row: white_blobs
         # col: colored_blobs
 
-        indices = self.match_with_munkres(colored_blobs, white_blobs)
+        indices = self.match_with_munkres(white_blobs, colored_blobs)
 
         print("\nindices (wi->ci):")
         for wi, ci in indices:
@@ -236,37 +236,41 @@ class BallsTracker:
 
         return named_spheros, crap_blobs
 
-    def match_with_munkres(self, blobs1, blobs2):
+    def match_with_munkres(self, blobs2, blobs1):
         print("blobs1: ")
         print(blobs1)
         print("blobs2: ")
         print(blobs2)
         distance_mat = np.empty([len(blobs2), len(blobs1)])
-        for wi in range(0, len(blobs2)):
-            print("wi{0}".format(wi))
-            for ci in range(0, len(blobs1)):
-                print("ci{0}".format(ci))
-                white_pos = blobs2[wi].position
-                colored_pos = blobs1[ci].position
-                v = np.array(white_pos) - np.array(colored_pos)
-                d = np.linalg.norm(v)
-                distance_mat[wi, ci] = d
+        for i2 in range(0, len(blobs2)):
+            print("i2{0}".format(i2))  # previously wi
+            for i1 in range(0, len(blobs1)):
+                print("i1{0}".format(i1))  # previously ci
+                pos2 = blobs2[i2].position
+                pos1 = blobs1[i1].position
+                d = np.linalg.norm(np.array(pos2) - np.array(pos1))
+                distance_mat[i2, i1] = d
                 print("\t{0}".format(d))
 
         transpose = distance_mat.shape[0] > distance_mat.shape[1]
 
         if transpose:
+            print("will transpose")
             distance_mat = distance_mat.T
 
         munkres = Munkres()
         indices = munkres.compute(distance_mat)  # this has the assignments. nothing else is necessary.
 
+        # actually I've been using it in transpose all this time... rows are from blobs2.
         if not transpose:
             return indices
         else:
+            print("untranspose indices")
+            print(indices)
             tin = []
             for indpair in indices:
                 tin.append((indpair[1], indpair[0]))
+            print(tin)
             return tin
 
     @staticmethod
@@ -546,15 +550,21 @@ class BallsTracker:
 
         # match with noncrap using munkres
 
+        if len(noncrap_blobs) == 0:
+            return None, None
+
         indices = self.match_with_munkres(named_spheros, noncrap_blobs)
 
-        if len(indices) != len(named_spheros):
+        if indices is None or len(indices) != len(named_spheros):
             print("NUM MATCHES IS {0} AND NOT {1}".format(len(indices), len(named_spheros)))
             return None, None
 
+        print(indices)
+
         # see that they are at the same side of hue.
         for oi, ni in indices:
-            old_hue = bgr2hue(named_spheros[oi].colorBGR)
+            print("array size:{0} oi:{1}".format(len(named_spheros), oi))
+            old_hue = bgr2hue(named_spheros[oi].colorBGR)  # IndexError: list index out of range HAPPENS
             new_hue = bgr2hue(noncrap_blobs[ni].colorBGR)
 
             if BallsTracker.is_hue_red(old_hue) != BallsTracker.is_hue_red(new_hue):
