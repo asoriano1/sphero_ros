@@ -13,13 +13,19 @@ def radians_from_to_around(v1, v2, a):
 
     d = np.dot(v1, v2)
 
-    return np.arctan2(np.dot(c, a), d)
+    radians = np.arctan2(np.dot(c, a), d)
+    print("ANGLE FROM \t{0} TO \t{1} IS \t{2}".format(v1, v2, radians * 180 / np.pi))
+    return radians
 
 
 def rotate_around_with_radians(v1, a, radians):
     quat = Quaternion(axis=a, radians=radians)
 
     return quat.rotate(v1)
+
+
+def to_command_frame(dir_vec):
+    return np.multiply(dir_vec, [-1, 1, 1])
 
 
 class BallsController:
@@ -77,8 +83,8 @@ class BallsController:
             self.rad_offset[name] = 0
 
         rate_fps = 10
-        rate = rospy.Rate(rate_fps)
         speed = 20
+        dist_close_enough = 50
 
         while not rospy.is_shutdown():
             # names that are both in goal_pos and current_pos
@@ -97,47 +103,27 @@ class BallsController:
                 print ("\nCURRENT ANGLE \t{0}".format(self.rad_offset[name]))
 
                 # print("dist is {0}".format(dist))
-                if dist > 10:
+                if dist > dist_close_enough:
                     # print("should move")
                     # write it as a loop here. later reimplement it using many variables outside.
                     initial_pos = pos
                     desired_dir = direction
-                    command_dir = rotate_around_with_radians(desired_dir, (0, 0, 1), self.rad_offset[name])
+                    corrected_desired_dir = rotate_around_with_radians(desired_dir, (0, 0, 1), self.rad_offset[name])
+                    command_dir = to_command_frame(corrected_desired_dir)
+
+                    print("\n\nDESIRED, CORRECTED, COMMAND: {0}, {1}, {2}".format(desired_dir, corrected_desired_dir, command_dir))
+
                     print ("\nCOMMAND DIR \t{0}".format(command_dir))
 
-                    # try to move
-                    pub = rospy.Publisher("/{0}/cmd_vel".format(name), Twist, latch=True, queue_size=5)
-
-                    reached = False
-
-                    # move for two secs while dist is still large
-                    num_iterations = 2 * 60 / rate_fps
-                    num_iterations = 10  # override
-                    for i in range(0, num_iterations):
-                        print("command_dir {0} {1}".format(name, command_dir))
-                        msg = Twist()
-                        msg.linear.x = command_dir[0] * speed
-                        msg.linear.y = command_dir[1] * speed
-                        msg.linear.z = command_dir[2] * speed
-                        pub.publish(msg)
-                        rate.sleep()
-
-                        dist = np.linalg.norm(np.array(goal) - np.array(self.current_pos[name]))
-
-                        if dist < 50:
-                            reached = True
-                            break
-
-                    rospy.sleep(2) # sleep before deciding on direction change
-
-                    dist = np.linalg.norm(np.array(goal) - np.array(self.current_pos[name]))
-                    if dist < 50:
-                        reached = True
+                    reached = self.move_one_step(command_dir, name, rate_fps, speed, 3, dist_close_enough, goal)
 
                     if reached:
                         print("\n\n\n\n\n\n\n\n**************** reached ***************\n\n\n\n\n\n\n\n\n\n")
                     else:
                         print("did not reach")
+
+                        # rospy.sleep(3) #trying online
+
                         # see how you moved
                         new_pos = self.current_pos[name]
                         actual_dir = np.array(new_pos) - np.array(initial_pos)
@@ -147,10 +133,25 @@ class BallsController:
 
                         # can try command_dir without +=
                         rad_error = radians_from_to_around(actual_dir, desired_dir, (0, 0, 1))
+
+                        # before you update the rad error, move one step back. maybe this time it will go to target.
+                        # this should help me debug my code
+                        # self.move_one_step(-1 * command_dir, name, rate_fps, speed)
+                        # TODO test it like this and see if going back and moving again moves better.
+
                         self.rad_offset[name] += rad_error
                         print("rad_error:{0} new rad_offset:{1}".format(rad_error, self.rad_offset[name]))
 
-                    print("sleep 5")
+                        # move a bit more before recording the new initial_pos
+                        corrected_desired_dir = rotate_around_with_radians(desired_dir, (0, 0, 1), self.rad_offset[name])
+                        command_dir = to_command_frame(corrected_desired_dir)
+                        self.move_one_step(command_dir, name, rate_fps, speed, 1, dist_close_enough, goal)
+
+
+                    # ok now. want to do online fix
+                    # remember a location that you are sure the current direction started.
+                    # go for a while. take a snapshot. do a correction with the start location. apply the correction.
+                    # update the start location a bit later as the new command will propagate.
 
                     print ("\n\nCURRENT POS")
                     print (self.current_pos[name])
@@ -158,15 +159,47 @@ class BallsController:
                     print (self.goal_pos[name])
                     print ("\n\n")
 
-                    rospy.sleep(5)
 
 
                     # calculate angle and fix the coord sys. retry with the new loc.
 
-
-
+            rate = rospy.Rate(rate_fps)
             rate.sleep()
 
+    def move_one_step(self, command_dir, name, rate_fps, speed, duration, dist_close_enough = None, goal = None):
+        # try to move
+        rate = rospy.Rate(rate_fps)
+        pub = rospy.Publisher("/{0}/cmd_vel".format(name), Twist, latch=True, queue_size=5)
+        reached = False
+        # move for two secs while dist is still large
+        # num_iterations = 2 * 60 / rate_fps
+        num_iterations = duration * rate_fps  # TODO make this a loop in time instead
+
+        print ("duration {0}".format(duration))
+        print ("\n\n\n\nnum_iterations {0}\n\n\n\n\n\n".format(num_iterations))
+        for i in range(0, num_iterations):
+            print("command_dir {0} {1}".format(name, command_dir))
+            msg = Twist()
+            msg.linear.x = command_dir[0] * speed
+            msg.linear.y = command_dir[1] * speed
+            msg.linear.z = command_dir[2] * speed
+            pub.publish(msg)
+            rate.sleep()
+
+            if goal is not None:
+                if np.linalg.norm(np.array(goal) - np.array(self.current_pos[name])) < dist_close_enough:
+                    reached = True
+                    break
+
+        return reached
+        # will try online now
+        # rospy.sleep(2)  # sleep before deciding on direction change
+        #
+        # if goal is not None:
+        #     dist = np.linalg.norm(np.array(goal) - np.array(self.current_pos[name]))
+        #     if dist < 50:
+        #         reached = True
+        #     return reached
 
     def main(self):
         rospy.init_node('balls_controller', anonymous=True)
