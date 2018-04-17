@@ -1,0 +1,20 @@
+roslaunch sphero_node multi_sphero.launch
+roslaunch balls_detector camera.launch
+rosrun balls_detector balls_tracker.py
+roslaunch balls_detector controller.launch
+
+rostopic pub /sphero_sk1270/cam_image_goal_pos std_msgs/Float64MultiArray "layout:
+  dim:
+  - label: ''
+    size: 0
+    stride: 0
+  data_offset: 0
+data: [500, 500]" 
+
+rostopic pub /sphero_sk9495/cam_image_goal_pos std_msgs/Float64MultiArra"layout:
+  dim:
+  - label: ''
+    size: 0
+    stride: 0
+  data_offset: 0
+data: [300, 300]"

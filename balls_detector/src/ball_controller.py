@@ -28,79 +28,50 @@ def to_command_frame(dir_vec):
     return np.multiply(dir_vec, [-1, 1, 1])
 
 
-class BallsController:
+class BallController:
     def __init__(self):
-        self.sphero_names = None
-        self.current_pos = {}
-        self.goal_pos = {}
-        self.rad_offset = {}
-
-    def collect_sphero_names(self):
-        all_topics_and_types = rospy.get_published_topics()
-        names_set = set()
-        for topicAndType in all_topics_and_types:
-            topic = topicAndType[0]
-            if topic.startswith('/sphero'):
-                sphero_name = topic.split('/')[1]
-                names_set.add(sphero_name)
-
-        self.sphero_names = list(names_set)
-        print("sphero names:")
-
-        for name in self.sphero_names:
-            print(name)
-            print("{0}".format(name))
-        print("^sphero names:")
+        self.sphero_name = ""
+        # self.sphero_names = None
+        self.current_pos = None
+        self.goal_pos = None
+        self.rad_offset = 0
 
     def listen_to_topics(self):
+        # desired position
+        goal_pos_topic = "/{0}/cam_image_goal_pos".format(self.sphero_name)
+        rospy.Subscriber(goal_pos_topic, Float64MultiArray, self.goal_pos_detected)
 
-        for name in self.sphero_names:
-
-            # desired position
-            goal_pos_topic = "/{0}/cam_image_goal_pos".format(name)
-            rospy.Subscriber(goal_pos_topic, Float64MultiArray, self.goal_pos_detected)
-
-            # current position
-            current_pos_topic = "/{0}/cam_image_pos".format(name)
-            rospy.Subscriber(current_pos_topic, Float64MultiArray, self.current_pos_detected)
-
-        # if they are different, action
+        # current position
+        current_pos_topic = "/{0}/cam_image_pos".format(self.sphero_name)
+        rospy.Subscriber(current_pos_topic, Float64MultiArray, self.current_pos_detected)
 
     def goal_pos_detected(self, msg):
-        print("goal pos detected")
-        name = msg._connection_header['topic'].split('/')[1]
-
-        print("name: {0}, pos: {1}".format(name, msg.data))
-        self.goal_pos[name] = list(msg.data) + [0]  # copy
+        print("goal pos detected {0}".format(msg.data))
+        self.goal_pos = list(msg.data) + [0]  # copy
 
     def current_pos_detected(self, msg):
-        name = msg._connection_header['topic'].split('/')[1]
+        self.current_pos = list(msg.data) + [0]  # copy
 
-        self.current_pos[name] = list(msg.data) + [0]  # copy
-
-    def move_towards_goals(self):
-        for name in self.sphero_names:
-            self.rad_offset[name] = 0
-
+    def move_towards_goal(self):
         rate_fps = 10
         speed = 20
         dist_close_enough = 50
 
         while not rospy.is_shutdown():
-            # names that are both in goal_pos and current_pos
-            name_set = set(self.goal_pos.keys()).intersection(set(self.current_pos.keys()))
+            if self.goal_pos is None or self.current_pos is None:
+                rospy.sleep(1)
+            else:
 
-            for name in name_set:
-                print("\nWILL MOVE {0}".format(name))
-                pos = self.current_pos[name]
-                goal = self.goal_pos[name]
+                print("\nWILL MOVE {0}".format(self.sphero_name))
+                pos = self.current_pos
+                goal = self.goal_pos
                 print ("\n\nCURRENT POS \t{0}".format(pos))
                 print ("\nGOAL_POS \t{0}".format(goal))
                 vv = np.array(goal) - np.array(pos)
                 dist = np.linalg.norm(vv)
                 direction = vv / dist
 
-                print ("\nCURRENT ANGLE \t{0}".format(self.rad_offset[name]))
+                print ("\nCURRENT ANGLE \t{0}".format(self.rad_offset))
 
                 # print("dist is {0}".format(dist))
                 if dist > dist_close_enough:
@@ -108,14 +79,14 @@ class BallsController:
                     # write it as a loop here. later reimplement it using many variables outside.
                     initial_pos = pos
                     desired_dir = direction
-                    corrected_desired_dir = rotate_around_with_radians(desired_dir, (0, 0, 1), self.rad_offset[name])
+                    corrected_desired_dir = rotate_around_with_radians(desired_dir, (0, 0, 1), self.rad_offset)
                     command_dir = to_command_frame(corrected_desired_dir)
 
                     print("\n\nDESIRED, CORRECTED, COMMAND: {0}, {1}, {2}".format(desired_dir, corrected_desired_dir, command_dir))
 
                     print ("\nCOMMAND DIR \t{0}".format(command_dir))
 
-                    reached = self.move_one_step(command_dir, name, rate_fps, speed, 3, dist_close_enough, goal)
+                    reached = self.move_one_step(command_dir, self.sphero_name, rate_fps, speed, 3, dist_close_enough, goal)
 
                     if reached:
                         print("\n\n\n\n\n\n\n\n**************** reached ***************\n\n\n\n\n\n\n\n\n\n")
@@ -125,7 +96,7 @@ class BallsController:
                         # rospy.sleep(3) #trying online
 
                         # see how you moved
-                        new_pos = self.current_pos[name]
+                        new_pos = self.current_pos
                         actual_dir = np.array(new_pos) - np.array(initial_pos)
                         # update the angle of rotation
 
@@ -139,13 +110,13 @@ class BallsController:
                         # self.move_one_step(-1 * command_dir, name, rate_fps, speed)
                         # TODO test it like this and see if going back and moving again moves better.
 
-                        self.rad_offset[name] += rad_error
-                        print("rad_error:{0} new rad_offset:{1}".format(rad_error, self.rad_offset[name]))
+                        self.rad_offset += rad_error
+                        print("rad_error:{0} new rad_offset:{1}".format(rad_error, self.rad_offset))
 
                         # move a bit more before recording the new initial_pos
-                        corrected_desired_dir = rotate_around_with_radians(desired_dir, (0, 0, 1), self.rad_offset[name])
+                        corrected_desired_dir = rotate_around_with_radians(desired_dir, (0, 0, 1), self.rad_offset)
                         command_dir = to_command_frame(corrected_desired_dir)
-                        self.move_one_step(command_dir, name, rate_fps, speed, 1, dist_close_enough, goal)
+                        self.move_one_step(command_dir, self.sphero_name, rate_fps, speed, 1, dist_close_enough, goal)
 
 
                     # ok now. want to do online fix
@@ -154,9 +125,9 @@ class BallsController:
                     # update the start location a bit later as the new command will propagate.
 
                     print ("\n\nCURRENT POS")
-                    print (self.current_pos[name])
+                    print (self.current_pos)
                     print ("\nGOAL_POS")
-                    print (self.goal_pos[name])
+                    print (self.goal_pos)
                     print ("\n\n")
 
 
@@ -178,7 +149,7 @@ class BallsController:
         print ("duration {0}".format(duration))
         print ("\n\n\n\nnum_iterations {0}\n\n\n\n\n\n".format(num_iterations))
         for i in range(0, num_iterations):
-            print("command_dir {0} {1}".format(name, command_dir))
+            print("command_dir {0}".format(name, command_dir))
             msg = Twist()
             msg.linear.x = command_dir[0] * speed
             msg.linear.y = command_dir[1] * speed
@@ -187,7 +158,7 @@ class BallsController:
             rate.sleep()
 
             if goal is not None:
-                if np.linalg.norm(np.array(goal) - np.array(self.current_pos[name])) < dist_close_enough:
+                if np.linalg.norm(np.array(goal) - np.array(self.current_pos)) < dist_close_enough:
                     reached = True
                     break
 
@@ -202,19 +173,20 @@ class BallsController:
         #     return reached
 
     def main(self):
-        rospy.init_node('balls_controller', anonymous=True)
+        rospy.init_node('ball_controller', anonymous=True)
 
-        self.collect_sphero_names()
+        self.sphero_name = rospy.get_param("~sphero_name", self.sphero_name)
 
-        self.listen_to_topics()
+        if len(self.sphero_name) > 0:
+            self.listen_to_topics()
 
-        self.move_towards_goals()
+            self.move_towards_goal()
 
 
 
 if __name__ == '__main__':
     try:
-        BallsController().main()
+        BallController().main()
 
     except rospy.ROSInterruptException:
         pass
