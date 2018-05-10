@@ -1,11 +1,13 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 import rospy
 import numpy as np
 
-from std_msgs.msg import Float64MultiArray
+from std_msgs.msg import Float64MultiArray, Int8
 from geometry_msgs.msg import Twist
 from pyquaternion import Quaternion
+
+from speech.srv import *
 
 
 def radians_from_to_around(v1, v2, a):
@@ -38,12 +40,34 @@ class BallController:
 
     def listen_to_topics(self):
         # desired position
+        goal_location_index_topic = "/{0}/goal_location_index".format(self.sphero_name)
+        rospy.Subscriber(goal_location_index_topic, Int8, self.goal_location_index_handler)
+
+        # desired position
         goal_pos_topic = "/{0}/cam_image_goal_pos".format(self.sphero_name)
         rospy.Subscriber(goal_pos_topic, Float64MultiArray, self.goal_pos_detected)
 
         # current position
         current_pos_topic = "/{0}/cam_image_pos".format(self.sphero_name)
         rospy.Subscriber(current_pos_topic, Float64MultiArray, self.current_pos_detected)
+
+    def goal_location_index_handler(self, msg):
+        index = msg.data
+        print("goal location is set to {0}".format(index))
+        # make a call to the location service and set goal pos to its return value
+        rospy.wait_for_service("get_location")
+        get_location = rospy.ServiceProxy("get_location", GetLocation)
+
+        try:
+            resp = get_location(index)
+
+            if resp.is_valid == 1:
+                self.goal_pos = [resp.x, resp.y, 0]
+            else:
+                print("Location response was not valid: {0}".format(resp.is_valid))
+
+        except rospy.ServiceException as exc:
+            print("Service did not process request: " + str(exc))
 
     def goal_pos_detected(self, msg):
         print("goal pos detected {0}".format(msg.data))
