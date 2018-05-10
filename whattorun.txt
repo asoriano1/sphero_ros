@@ -1,3 +1,5 @@
+workon ekorob
+
 roslaunch sphero_node multi_sphero.launch
 roslaunch balls_detector camera.launch
 rosrun balls_detector balls_tracker.py
@@ -18,3 +20,9 @@ rostopic pub /sphero_sk9495/cam_image_goal_pos std_msgs/Float64MultiArra"layout:
     stride: 0
   data_offset: 0
 data: [300, 300]"
+
+
+workon ekorob-speech
+
+rosrun speech SpeechRosNode.py
+

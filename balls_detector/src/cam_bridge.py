@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 '''
 We get a raw image from the connected camera, webcam or kinect, and broadcast
 its pixels arra on a topic called /cam/image/rgb for onward processing by

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 '''
 We modify the camera parameters, in particular we set exposure to auto mode,

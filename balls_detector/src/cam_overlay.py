@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 import rospy
 from std_msgs.msg import String
 from std_msgs.msg import Float64MultiArray

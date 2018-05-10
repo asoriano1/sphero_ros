@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 '''
 we subscribe to the published centroids (/locs/tagged & /locs/detected)
