@@ -2,8 +2,9 @@
 
 import rospy
 import numpy as np
+import sys
 
-from std_msgs.msg import Float64MultiArray, Int8
+from std_msgs.msg import Float64MultiArray, Int8, ColorRGBA
 from geometry_msgs.msg import Twist
 from pyquaternion import Quaternion
 
@@ -37,6 +38,8 @@ class BallController:
         self.current_pos = None
         self.goal_pos = None
         self.rad_offset = 0
+        self.color = None
+        self.loc_sub = None
 
     def listen_to_topics(self):
         # desired position
@@ -51,9 +54,13 @@ class BallController:
         current_pos_topic = "/{0}/cam_image_pos".format(self.sphero_name)
         rospy.Subscriber(current_pos_topic, Float64MultiArray, self.current_pos_detected)
 
+        # save current location of this robot could go here. but I'll just do it manually for now.
+
+
     def goal_location_index_handler(self, msg):
         index = msg.data
         print("goal location is set to {0}".format(index))
+        sys.stdout.flush()
         # make a call to the location service and set goal pos to its return value
         rospy.wait_for_service("get_location")
         get_location = rospy.ServiceProxy("get_location", GetLocation)
@@ -196,15 +203,42 @@ class BallController:
         #         reached = True
         #     return reached
 
+    def color_listener(self, msg):
+        self.color = msg
+
+        if msg.r > 0.5 and msg.g > 0.5:
+            print("white, not listening")
+        elif msg.r > 0.5:
+            # red
+            print("red, listening")
+            if self.loc_sub is not None:
+                self.loc_sub.unregister()
+            self.loc_sub = rospy.Subscriber("/red/goal_location_index", Int8, self.goal_location_index_handler)
+        elif msg.g > 0.5:
+            # green
+            print("green, listening")
+            if self.loc_sub is not None:
+                self.loc_sub.unregister()
+            self.loc_sub = rospy.Subscriber("/green/goal_location_index", Int8, self.goal_location_index_handler)
+        sys.stdout.flush()
+
     def main(self):
+        print("ball controller started")
         rospy.init_node('ball_controller', anonymous=True)
+        print("ball controller init_node called")
 
         self.sphero_name = rospy.get_param("~sphero_name", self.sphero_name)
+        # TODO get own color. start listening to own color for desired position.
+        print("hello controller {0}".format(self.sphero_name))
+        rospy.Subscriber("{0}/set_color".format(self.sphero_name), ColorRGBA, self.color_listener, queue_size=1)
+        sys.stdout.flush()
+
 
         if len(self.sphero_name) > 0:
             self.listen_to_topics()
 
             self.move_towards_goal()
+        sys.stdout.flush()
 
 
 

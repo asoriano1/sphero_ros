@@ -1,9 +1,9 @@
 <launch>
-  <node pkg="balls_detector" type="ball_controller.py" name="sphero_sk9495">
+  <node pkg="balls_detector" type="ball_controller.py" name="controller_sphero_sk9495">
     <param name="sphero_name" value="sphero_sk9495"/>
   </node>
 
-  <node pkg="balls_detector" type="ball_controller.py" name="sphero_sk1270">
+  <node pkg="balls_detector" type="ball_controller.py" name="controller_sphero_sk1270">
     <param name="sphero_name" value="sphero_sk1270"/>
   </node>
 </launch>

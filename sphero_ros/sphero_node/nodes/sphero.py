@@ -106,6 +106,9 @@ class SpheroNode(object):
         self.reconfigure_srv = dynamic_reconfigure.server.Server(ReconfigConfig, self.reconfigure)
         self.transform_broadcaster = tf.TransformBroadcaster()
 
+        colorPub = rospy.Publisher("set_color", ColorRGBA, latch=True, queue_size=1)
+        colorPub.publish(1, 1, 1, 1)
+
     def _init_params(self):
         self.connect_color_red = rospy.get_param('~connect_red',0)
         self.connect_color_blue = rospy.get_param('~connect_blue',0)
