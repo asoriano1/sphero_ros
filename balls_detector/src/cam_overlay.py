@@ -193,6 +193,7 @@ def cam_overlay():
                 # cv2.rectangle(image, (x, y), (x + 100, y + 100), (255, 255, 255))
                 # x += 1
                 # y += 1
+                
                 cv2.imshow("Detected", image)
             # rospy.loginfo("============= AFTER SHOW LOCK ======================")
 

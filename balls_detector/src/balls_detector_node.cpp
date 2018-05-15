@@ -258,6 +258,28 @@ private:
     vector<double> desMethCmp;
     Ptr<Feature2D> b;
     String label;
+
+    cv::Mat pRoi = img(cv::Rect(0, 0, 800, 150));
+    pRoi.setTo(cv::Scalar(0, 0, 0));
+
+    vector<cv::Point> point;
+    point.push_back(Point(45, 600));
+    point.push_back(Point(230, 150));
+    point.push_back(Point(0, 150));
+    point.push_back(Point(0, 600));
+    cv::fillConvexPoly(img, point, Scalar(0,0,0));
+    point.clear();
+
+
+    point.push_back(Point(800, 547));
+    point.push_back(Point(605, 150));
+    point.push_back(Point(800, 150));
+    cv::fillConvexPoly(img, point, Scalar(0,0,0));
+    point.clear();
+
+    cv::imshow(windowName, img);
+
+
     // Descriptor loop
     vector<String>::iterator itDesc;
     for (itDesc = typeDesc.begin(); itDesc != typeDesc.end(); ++itDesc)
@@ -322,7 +344,7 @@ private:
                   locs_color.data.push_back(meanColor[1]);
                   locs_color.data.push_back(meanColor[2]);
 
-                  cv::imshow(windowName, roi);
+                  //cv::imshow(windowName, roi);
 
                   circle(result, k->pt, (int)k->size, Scalar(0, 255, 255), 1);
                   putText(result, "hele", k->pt + Point2f(0, 2 * k->size), FONT_HERSHEY_SIMPLEX, 1, Scalar(255, 0, 255), 3);
