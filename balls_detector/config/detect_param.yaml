@@ -4,7 +4,7 @@
 # smaller
 Blob_Params:
   threshold_step: 6 #10
-  min_threshold: 224 #25
+  min_threshold: 200 #224 #25
   max_threshold: 255
   min_repeatability: 4 #4
   min_dist_between_blobs: 5 #5

@@ -85,7 +85,7 @@ class BallController:
 
     def move_towards_goal(self):
         rate_fps = 10
-        speed = 20
+        speed = 30
         dist_close_enough = 50
 
         while not rospy.is_shutdown():
