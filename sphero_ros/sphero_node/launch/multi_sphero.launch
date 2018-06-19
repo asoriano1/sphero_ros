@@ -1,8 +1,9 @@
+<?xml version="1.0"?>
 <launch>
 
   <!-- <rosparam command="load" file="$(find sphero_node)/config/sphero.yaml" /> -->
-  <arg name="sk9495" default="true"/>
-  <arg name="sk1270" default="true"/>
+  <arg name="sk9495" default="false"/>
+  <arg name="sk-5fd4" default="true"/>
 
   <group if="$(arg sk9495)">
     <node pkg="sphero_node" type="sphero.py" name="sphero_sk9495" ns="sphero_sk9495" respawn="true">
@@ -13,9 +14,9 @@
     </node>
   </group>
 
-  <group if="$(arg sk1270)">
+  <group if="$(arg sk-5fd4)">
     <node pkg="sphero_node" type="sphero.py" name="sphero_sk1270" ns="sphero_sk1270" respawn="true">
-      <param name="address"  value="D8:06:1C:CE:12:70" />
+      <param name="address"  value="D3:57:0A:71:5F:D4" />
       <param name="connect_red"  value="255" />
       <param name="connect_blue"  value="255" />
       <param name="connect_green"  value="255" />
