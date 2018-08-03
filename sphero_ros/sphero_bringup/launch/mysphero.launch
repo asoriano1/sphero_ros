@@ -1,11 +1,17 @@
 <?xml version="1.0"?>
 <launch>
-  <param name="robot_description" textfile='$(find sphero_description)/urdf/sphero.urdf' />
+
+  <!-- Load the URDF into ROS parameter server -->
+  <arg name="urdf_file" default="$(find xacro)/xacro '$(find sphero_description)/urdf/sprk.xacro' --inorder" />
+  <param name="robot_description" command="$(arg urdf_file)" />
+	
+  <!--param name="robot_description" textfile='$(find sphero_description)/urdf/sphero.urdf' /-->
+  
   <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen">
     <param name="publish_frequency" type="double" value="50.0" />
   </node>
   
-  <node name="sphero" pkg="sphero_node" type="sphero.py" output="screen">
+  <!--node name="sphero" pkg="sphero_node" type="sphero.py" output="screen">
     <param name="address" value="D3:57:0A:71:5F:D4" />
   </node>
   
@@ -17,6 +23,5 @@
     <param name="imu_used" value="true"/>
     <param name="vo_used" value="false"/>
     <param name="self_diagnose" value="false"/>
-  </node>
-  <!-- <node pkg="sphero_node" type="sphero.py" name="sphero_node"/> -->
+  </node-->
 </launch>
